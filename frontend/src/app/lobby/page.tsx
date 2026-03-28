@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Nav from "../../components/nav";
 import { parseUnits } from "viem";
-import { baseSepolia } from "wagmi/chains";
+import { base } from "wagmi/chains";
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`;
 const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_ADDRESS as `0x${string}`;
@@ -74,8 +74,8 @@ useEffect(() => {
       });
   }, [address]);
 
-  const { data: usdcBal } = useReadContract({ address: USDC_ADDRESS, abi: USDC_ABI, functionName: "balanceOf", args: address ? [address] : undefined, chainId: baseSepolia.id });
-  const { data: isSubscribed } = useReadContract({ address: CONTRACT_ADDRESS, abi: CONTRACT_ABI, functionName: "isSubscribed", args: address ? [address] : undefined, chainId: baseSepolia.id });
+  const { data: usdcBal } = useReadContract({ address: USDC_ADDRESS, abi: USDC_ABI, functionName: "balanceOf", args: address ? [address] : undefined, chainId: base.id });
+  const { data: isSubscribed } = useReadContract({ address: CONTRACT_ADDRESS, abi: CONTRACT_ABI, functionName: "isSubscribed", args: address ? [address] : undefined, chainId: base.id });
   const { writeContract: approve, data: approveTxHash } = useWriteContract();
   const { writeContract: subscribe, data: subscribeTxHash } = useWriteContract();
   const { isSuccess: approveSuccess } = useWaitForTransactionReceipt({ hash: approveTxHash });
@@ -84,7 +84,7 @@ useEffect(() => {
   useEffect(() => {
     if (approveSuccess && step === "approving") {
       setStep("subscribing");
-      subscribe({ address: CONTRACT_ADDRESS, abi: CONTRACT_ABI, functionName: "subscribe", chainId: baseSepolia.id, chain: undefined, account: "" });
+      subscribe({ address: CONTRACT_ADDRESS, abi: CONTRACT_ABI, functionName: "subscribe", chainId: base.id, chain: undefined, account: "" as `0x${string}` });
     }
   }, [approveSuccess]);
 
@@ -98,7 +98,7 @@ useEffect(() => {
   const handleSubscribe = () => {
     if (!address) return;
     setError(""); setStep("approving");
-    approve({ address: USDC_ADDRESS, abi: USDC_ABI, functionName: "approve", args: [CONTRACT_ADDRESS, SUBSCRIPTION_FEE], chainId: baseSepolia.id, chain: undefined, account: "" });
+    approve({ address: USDC_ADDRESS, abi: USDC_ABI, functionName: "approve", args: [CONTRACT_ADDRESS, SUBSCRIPTION_FEE], chainId: base.id, chain: undefined, account: "" });
   };
 
   const subscribed = isSubscribed || step === "done";
