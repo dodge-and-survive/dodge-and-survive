@@ -3,7 +3,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import Nav from "../../components/nav";
-import { baseSepolia } from "wagmi/chains";
+import { base } from "wagmi/chains";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`;
@@ -44,12 +44,10 @@ export default function LeaderboardPage() {
   const [xpToTop5, setXpToTop5] = useState<number | null>(null);
   const [countdown, setCountdown] = useState("");
 
-  // Week status
   const [weekStatus, setWeekStatus] = useState<WeekStatus>("active");
   const [weekEnd, setWeekEnd] = useState<Date | null>(null);
   const [claimableUntil, setClaimableUntil] = useState<Date | null>(null);
 
-  // Claim state
   const [myReward, setMyReward] = useState<any>(null);
   const [claimStep, setClaimStep] = useState<"idle" | "preparing" | "confirming" | "done" | "error">("idle");
   const [claimError, setClaimError] = useState("");
@@ -57,7 +55,6 @@ export default function LeaderboardPage() {
   const { writeContract, data: txHash, error: writeError } = useWriteContract();
   const { isSuccess: txSuccess, isLoading: txLoading } = useWaitForTransactionReceipt({ hash: txHash });
 
-  // Confirm tx on-chain then tell backend
   useEffect(() => {
     if (!txSuccess || !txHash || claimStep !== "confirming" || !myReward) return;
     const confirm = async () => {
@@ -79,7 +76,6 @@ export default function LeaderboardPage() {
     if (writeError) { setClaimError(writeError.message.slice(0, 100)); setClaimStep("error"); }
   }, [writeError]);
 
-  // Countdown timer
   useEffect(() => {
     const tick = () => {
       const target = weekStatus === "finalized" && claimableUntil ? claimableUntil : weekEnd;
@@ -98,7 +94,6 @@ export default function LeaderboardPage() {
     return () => clearInterval(i);
   }, [weekEnd, claimableUntil, weekStatus]);
 
-  // Fetch leaderboard data
   useEffect(() => {
     fetch(`${API_URL}/api/leaderboard`)
       .then(r => r.json())
@@ -147,7 +142,9 @@ export default function LeaderboardPage() {
         abi: CONTRACT_ABI,
         functionName: "setWeeklyReward",
         args: [address, BigInt(myReward.xpReward), data.signature as `0x${string}`],
-        chainId: baseSepolia.id,
+        chainId: base.id,
+        chain: undefined,
+        account: "" as `0x${string}`,
       });
     } catch { setClaimError("Failed to prepare claim"); setClaimStep("error"); }
   };
@@ -172,7 +169,6 @@ export default function LeaderboardPage() {
   const isMe = (player: any) => address && player.walletAddress?.toLowerCase() === address.toLowerCase();
   const rewards = tab === "monthly" ? MONTHLY_REWARDS : WEEKLY_REWARDS;
 
-  // Week status banner content
   const statusBanner = () => {
     if (weekStatus === "active") return {
       bg: "rgba(232,255,0,0.03)", border: "rgba(232,255,0,0.15)", color: "#E8FF00",
@@ -210,13 +206,11 @@ export default function LeaderboardPage() {
 
       <div className="lb-wrap" style={{ maxWidth: "900px", margin: "0 auto", padding: "40px 24px" }}>
 
-        {/* Header */}
         <div style={{ marginBottom: "24px" }}>
           <div className="lb-title" style={{ fontFamily: "Bebas Neue, sans-serif", fontSize: "3.5rem", color: "white", lineHeight: 1, marginBottom: "4px" }}>LEADERBOARD</div>
           <div style={{ width: "48px", height: "2px", background: "#E8FF00", marginBottom: "16px" }} />
         </div>
 
-        {/* Week Status Banner */}
         <div style={{ background: banner.bg, border: `1px solid ${banner.border}`, padding: "16px 20px", marginBottom: "20px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
           <div>
             <div style={{ fontFamily: "Bebas Neue, sans-serif", fontSize: "1rem", color: banner.color, letterSpacing: "0.08em", marginBottom: "4px" }}>
@@ -239,7 +233,6 @@ export default function LeaderboardPage() {
           )}
         </div>
 
-        {/* Claim Banner — only when finalized + user has unclaimed reward */}
         {weekStatus === "finalized" && myReward && !myReward.rewardClaimed && claimStep !== "done" && (
           <div style={{ background: "rgba(232,255,0,0.05)", border: "2px solid rgba(232,255,0,0.5)", padding: "20px 24px", marginBottom: "20px", animation: "rewardGlow 2s ease infinite" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
@@ -260,20 +253,18 @@ export default function LeaderboardPage() {
             </div>
             {txHash && claimStep === "confirming" && (
               <div style={{ marginTop: "8px", fontFamily: "Space Mono, monospace", fontSize: "0.55rem", color: "rgba(232,255,0,0.4)" }}>
-                TX: <a href={`https://sepolia.basescan.org/tx/${txHash}`} target="_blank" rel="noreferrer" style={{ color: "#E8FF00" }}>{txHash.slice(0, 24)}...</a>
+                TX: <a href={`https://basescan.org/tx/${txHash}`} target="_blank" rel="noreferrer" style={{ color: "#E8FF00" }}>{txHash.slice(0, 24)}...</a>
               </div>
             )}
           </div>
         )}
 
-        {/* Claimed success */}
         {claimStep === "done" && (
           <div style={{ background: "rgba(0,255,136,0.04)", border: "1px solid rgba(0,255,136,0.3)", padding: "14px 20px", marginBottom: "20px", fontFamily: "Space Mono, monospace", fontSize: "0.7rem", color: "#00FF88" }}>
             ✓ Reward claimed! +{myReward?.xpReward} XP added to your account.
           </div>
         )}
 
-        {/* My Rank Card */}
         {address && (
           <div style={{ background: "#111", border: "1px solid rgba(232,255,0,0.2)", borderLeft: "3px solid #E8FF00", padding: "18px 20px", marginBottom: "20px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", flexWrap: "wrap", gap: "8px" }}>
@@ -307,7 +298,6 @@ export default function LeaderboardPage() {
           </div>
         )}
 
-        {/* Rewards Banner */}
         {(tab === "weekly" || tab === "monthly") && (
           <div style={{ background: "#0f0f0f", border: "1px solid rgba(232,255,0,0.12)", padding: "14px 18px", marginBottom: "20px" }}>
             <div style={{ fontFamily: "Bebas Neue, sans-serif", fontSize: "0.8rem", color: "#E8FF00", letterSpacing: "0.1em", marginBottom: "10px" }}>
@@ -327,7 +317,6 @@ export default function LeaderboardPage() {
           </div>
         )}
 
-        {/* Tabs */}
         <div className="tab-wrap" style={{ display: "flex", gap: "6px", marginBottom: "16px" }}>
           {[{ key: "weekly", label: "WEEKLY XP" }, { key: "monthly", label: "MONTHLY XP" }, { key: "alltime", label: "ALL TIME" }, { key: "wins", label: "WIN RANKINGS" }].map(({ key, label }) => (
             <button key={key} className="tab-btn" onClick={() => setTab(key as any)}
@@ -343,14 +332,12 @@ export default function LeaderboardPage() {
           </div>
         )}
 
-        {/* Player List */}
         {loading ? (
           <div style={{ textAlign: "center", padding: "60px", fontFamily: "Bebas Neue, sans-serif", fontSize: "2rem", color: "#333" }}>LOADING...</div>
         ) : list.length === 0 ? (
           <div style={{ textAlign: "center", padding: "60px", fontFamily: "Space Mono, monospace", fontSize: "0.8rem", color: "#555" }}>No players yet.</div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
-            {/* Reward zone label */}
             {(tab === "weekly" || tab === "monthly") && list.length > 0 && (
               <div style={{ fontFamily: "Space Mono, monospace", fontSize: "0.55rem", color: "#E8FF00", padding: "6px 12px", background: "rgba(232,255,0,0.04)", border: "1px solid rgba(232,255,0,0.1)", borderBottom: "none", letterSpacing: "2px" }}>
                 🔥 REWARD ZONE
@@ -387,7 +374,6 @@ export default function LeaderboardPage() {
                     </div>
                   </div>
 
-                  {/* Reward badge */}
                   {isRewardZone && (
                     <div style={{ background: "rgba(232,255,0,0.06)", border: "1px solid rgba(232,255,0,0.15)", padding: "4px 8px", textAlign: "center", flexShrink: 0 }} className="player-xp-label">
                       <div style={{ fontFamily: "Space Mono, monospace", fontSize: "0.45rem", color: "#555" }}>REWARD</div>
@@ -419,7 +405,6 @@ export default function LeaderboardPage() {
               );
             })}
 
-            {/* Outside top 100 */}
             {address && myRank && myRank > 100 && (
               <div style={{ marginTop: "10px", background: "rgba(232,255,0,0.04)", border: "1px solid rgba(232,255,0,0.25)", padding: "12px 16px", display: "flex", alignItems: "center", gap: "12px" }}>
                 <div style={{ fontFamily: "Bebas Neue, sans-serif", fontSize: "1.1rem", color: "#E8FF00", minWidth: "40px", textAlign: "center" }}>#{myRank}</div>
