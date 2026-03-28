@@ -176,7 +176,7 @@ useEffect(() => {
             </div>
           )}
           {dailyStatus === "playable" && (
-            <button onClick={() => router.push("/game/dodge-nodes")}s
+            <button onClick={() => router.push("/game/dodge-nodes")}
               style={{ width: "100%", background: "#00ffb3", color: "#020408", border: "none", padding: "18px", fontFamily: "Orbitron, monospace", fontSize: "1rem", fontWeight: 900, letterSpacing: "5px", cursor: "pointer", clipPath: "polygon(10px 0%,100% 0%,calc(100% - 10px) 100%,0% 100%)", boxShadow: "0 0 24px rgba(0,255,180,0.35)" }}>
               ▶ PLAY NOW
             </button>
