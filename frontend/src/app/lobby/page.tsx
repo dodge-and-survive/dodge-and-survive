@@ -84,7 +84,7 @@ useEffect(() => {
   useEffect(() => {
     if (approveSuccess && step === "approving") {
       setStep("subscribing");
-      subscribe({ address: CONTRACT_ADDRESS, abi: CONTRACT_ABI, functionName: "subscribe", chainId: base.id, chain: undefined, account: "" as `0x${string}` });
+      subscribe({ address: CONTRACT_ADDRESS, abi: CONTRACT_ABI, functionName: "subscribe", chainId: base.id, chain: undefined, account: "" as `0x${string}` as `0x${string}` });
     }
   }, [approveSuccess]);
 
@@ -98,7 +98,7 @@ useEffect(() => {
   const handleSubscribe = () => {
     if (!address) return;
     setError(""); setStep("approving");
-    approve({ address: USDC_ADDRESS, abi: USDC_ABI, functionName: "approve", args: [CONTRACT_ADDRESS, SUBSCRIPTION_FEE], chainId: base.id, chain: undefined, account: "" });
+    approve({ address: USDC_ADDRESS, abi: USDC_ABI, functionName: "approve", args: [CONTRACT_ADDRESS, SUBSCRIPTION_FEE], chainId: base.id, chain: undefined, account: "" as `0x${string}` });
   };
 
   const subscribed = isSubscribed || step === "done";
