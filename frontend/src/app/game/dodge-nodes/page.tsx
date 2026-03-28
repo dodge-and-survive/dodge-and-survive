@@ -169,11 +169,8 @@ useEffect(() => {
         chain: undefined,
         account: "" as `0x${string}`,
       });
-```
 
-Save. Then push to GitHub:
-```
-cd ~/Desktop/stake-and-survive/stake-and-survive && git add . && git commit -m "Fix TS error" && git push
+
     } catch (err) {
       setClaimError("Failed to connect to backend");
       setClaimStep("error");
