@@ -160,13 +160,20 @@ useEffect(() => {
 
       // Step 2: send tx to contract
       setClaimStep("confirming");
-      writeContract({
+     writeContract({
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: "claimDailyXP",
         args: [BigInt(data.xpAmount), data.signature as `0x${string}`],
         chainId: baseSepolia.id,
+        chain: undefined,
+        account: "" as `0x${string}`,
       });
+```
+
+Save. Then push to GitHub:
+```
+cd ~/Desktop/stake-and-survive/stake-and-survive && git add . && git commit -m "Fix TS error" && git push
     } catch (err) {
       setClaimError("Failed to connect to backend");
       setClaimStep("error");
