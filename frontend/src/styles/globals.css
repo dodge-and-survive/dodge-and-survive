@@ -1,0 +1,62 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --yellow: #E8FF00;
+  --red: #FF3333;
+  --green: #00FF88;
+  --bg: #0A0A0A;
+  --surface: #111111;
+  --border: #222222;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #0A0A0A;
+  color: white;
+  font-family: 'Inter', sans-serif;
+  min-height: 100vh;
+}
+
+.font-display { font-family: 'Bebas Neue', sans-serif; }
+.font-mono { font-family: 'Space Mono', monospace; }
+
+.card {
+  background: #111111;
+  border: 1px solid #222222;
+  border-radius: 4px;
+}
+
+.card-glow {
+  border-color: #E8FF00;
+  box-shadow: 0 0 20px rgba(232, 255, 0, 0.15);
+}
+
+.btn-primary {
+  background: #E8FF00;
+  color: #000;
+  font-weight: 700;
+  padding: 0.75rem 2rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-primary:hover {
+  background: #fff;
+  box-shadow: 0 0 30px rgba(232, 255, 0, 0.6);
+}
+
+.btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 10px rgba(232, 255, 0, 0.3); }
+  50% { box-shadow: 0 0 30px rgba(232, 255, 0, 0.8); }
+}
+
+.animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
