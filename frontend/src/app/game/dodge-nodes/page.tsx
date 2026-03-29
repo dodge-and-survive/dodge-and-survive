@@ -161,9 +161,8 @@ useEffect(() => {
         abi: CONTRACT_ABI,
         functionName: "claimDailyXP",
         args: [BigInt(data.xpAmount), data.signature as `0x${string}`],
-        chainId: base.id,
+       chainId: base.id,
         chain: base,
-        account: "" as `0x${string}`,
       });
 
 
