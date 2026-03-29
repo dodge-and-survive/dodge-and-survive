@@ -9,7 +9,7 @@ import { useWriteContract, useWaitForTransactionReceipt, useReadContract } from 
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`;
 const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_ADDRESS as `0x${string}`;
-const SUBSCRIPTION_FEE = parseUnits("6.99", 6);
+const SUBSCRIPTION_FEE = parseUnits("4.99", 6);
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
 const USDC_ABI = [
@@ -50,7 +50,7 @@ export default function SubscribePage() {
   useEffect(() => {
     if (approveSuccess && step === "approving") {
       setStep("subscribing");
-      subscribe({ address: CONTRACT_ADDRESS, abi: CONTRACT_ABI, functionName: "subscribe", chainId: base.id, chain: base, account: "" as `0x${string}` });
+      subscribe({ address: CONTRACT_ADDRESS, abi: CONTRACT_ABI, functionName: "subscribe", chainId: base.id });
     }
   }, [approveSuccess]);
 
@@ -77,7 +77,7 @@ export default function SubscribePage() {
       return;
     }
     setStep("approving");
-approve({ address: USDC_ADDRESS, abi: USDC_ABI, functionName: "approve", args: [CONTRACT_ADDRESS, SUBSCRIPTION_FEE], chainId: base.id, chain: base, account: "" as `0x${string}` });
+approve({ address: USDC_ADDRESS, abi: USDC_ABI, functionName: "approve", args: [CONTRACT_ADDRESS, SUBSCRIPTION_FEE], chainId: base.id });
   };
 
   const usdcDisplay = usdcBal ? (Number(usdcBal) / 1e6).toFixed(2) : "0.00";
@@ -179,7 +179,7 @@ approve({ address: USDC_ADDRESS, abi: USDC_ABI, functionName: "approve", args: [
                   {/* Balance */}
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", padding: "12px", background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
                     <div style={{ fontFamily: "Space Mono, monospace", fontSize: "0.55rem", color: "#555" }}>Your USDC Balance</div>
-                    <div style={{ fontFamily: "Bebas Neue, sans-serif", fontSize: "1.2rem", color: Number(usdcDisplay) >= 6.99 ? "#00FF88" : "#FF3333" }}>${usdcDisplay}</div>
+                    <div style={{ fontFamily: "Bebas Neue, sans-serif", fontSize: "1.2rem", color: Number(usdcDisplay) >= 4.99 ? "#00FF88" : "#FF3333"}}>${usdcDisplay}</div>
                   </div>
 
                   {error && (
