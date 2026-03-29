@@ -1,7 +1,7 @@
 "use client";
 import { useAccount } from "wagmi";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, Suspense } from "react";
 import { io, Socket } from "socket.io-client";
 
 type Phase = "connecting" | "waiting" | "round" | "result" | "eliminated" | "winner";
@@ -86,7 +86,6 @@ function MemoryTrace({ onChoice, choice, seed }: { onChoice: (c: string) => void
   const snd = useSound();
 
   useEffect(() => {
-    // Use seed safe tiles if provided, else generate locally
     let sequence: number[];
     if (seed?.safeTiles && seed.safeTiles.length >= 3) {
       sequence = seed.safeTiles.slice(0, 3);
@@ -133,8 +132,6 @@ function MemoryTrace({ onChoice, choice, seed }: { onChoice: (c: string) => void
       onChoice("wrong");
     }
   };
-
-  const dotActive = (i: number) => input.length > i || (phase === "watch" && flashing !== null && seq.indexOf(flashing) >= i);
 
   return (
     <div style={{ textAlign: "center" }}>
@@ -211,9 +208,7 @@ function TimingTap({ onChoice, choice }: { onChoice: (c: string) => void; choice
 
       <div style={{ fontFamily: "Space Mono, monospace", fontSize: "0.45rem", color: "#333", letterSpacing: "0.1em", marginBottom: "6px" }}>SURVIVAL ZONE ↓</div>
       <div onClick={doTap} style={{ height: "64px", background: "#08080d", border: "1px solid #1a1a2a", position: "relative", overflow: "hidden", marginBottom: "6px", cursor: "pointer" }}>
-        {/* Safe zone */}
         <div style={{ position: "absolute", top: 0, bottom: 0, left: `${zoneStart}%`, width: "18%", background: "rgba(0,255,136,0.15)", borderLeft: "2px solid #00FF88", borderRight: "2px solid #00FF88" }} />
-        {/* Needle */}
         <div style={{ position: "absolute", top: 0, bottom: 0, left: `${needlePos}%`, width: "3px", background: result === "hit" ? "#00FF88" : result === "miss" ? "#FF2B2B" : "#E8FF00", boxShadow: `0 0 12px ${result === "hit" ? "#00FF88" : result === "miss" ? "#FF2B2B" : "#E8FF00"}`, transition: "background 0.2s" }} />
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "Space Mono, monospace", fontSize: "0.45rem", color: "#222", letterSpacing: "0.05em", marginBottom: "20px" }}>
@@ -238,7 +233,6 @@ function TimingTap({ onChoice, choice }: { onChoice: (c: string) => void; choice
 // ── Round 4: BTC Oracle ────────────────────────────────────
 function BTCOracle({ onChoice, choice }: { onChoice: (c: string) => void; choice: string | null }) {
   const snd = useSound();
-  // 5 states: intro → input → lock → wait → result
   const [step, setStep] = useState<"intro" | "input" | "lock" | "wait" | "result">("intro");
   const [btcPrice, setBtcPrice] = useState<number | null>(null);
   const [btcHistory, setBtcHistory] = useState<number[]>([]);
@@ -261,7 +255,6 @@ function BTCOracle({ onChoice, choice }: { onChoice: (c: string) => void; choice
     } catch { return 0; }
   };
 
-  // STEP 1: intro 3s → start input phase
   useEffect(() => {
    const t = setTimeout(async () => {
       const startPrice = await fetchPrice();
@@ -273,10 +266,8 @@ function BTCOracle({ onChoice, choice }: { onChoice: (c: string) => void; choice
     return () => clearTimeout(t);
   }, []);
 
-  // STEP 2: input phase — live price + 5s countdown
   useEffect(() => {
     if (step !== "input") return;
-    // live price updates
     priceIntRef.current = setInterval(async () => {
       const p = await fetchPrice();
       if (p > 0) {
@@ -284,7 +275,6 @@ function BTCOracle({ onChoice, choice }: { onChoice: (c: string) => void; choice
         setBtcHistory(prev => [...prev.slice(-39), p]);
       }
     }, 2000);
-    // 5-second countdown
     let remaining = 4;
     setCd(remaining);
     cdIntRef.current = setInterval(() => {
@@ -294,7 +284,6 @@ function BTCOracle({ onChoice, choice }: { onChoice: (c: string) => void; choice
       if (remaining <= 0) {
         clearInterval(cdIntRef.current!);
         clearInterval(priceIntRef.current!);
-        // lock whatever was picked (or null)
         setStep("lock");
       }
     }, 1000);
@@ -304,7 +293,6 @@ function BTCOracle({ onChoice, choice }: { onChoice: (c: string) => void; choice
     };
   }, [step]);
 
-  // STEP 3: lock → wait 2.5s → fetch end price → result
   useEffect(() => {
     if (step !== "lock") return;
   const t = setTimeout(async () => {
@@ -317,19 +305,15 @@ function BTCOracle({ onChoice, choice }: { onChoice: (c: string) => void; choice
     return () => clearTimeout(t);
   }, [step]);
 
-  // Submit choice to backend immediately when locked
   useEffect(() => {
     if (step !== "lock") return;
     onChoice(localChoice || "none");
   }, [step]);
 
-  // STEP 4: result shown — just display, no need to notify again
   useEffect(() => {
     if (step !== "result" || wentUp === null) return;
     const correct = localChoice !== null && ((localChoice === "UP" && wentUp) || (localChoice === "DOWN" && !wentUp));
-    const t = setTimeout(() => {
-      // result already submitted at lock step
-    }, 2000);
+    const t = setTimeout(() => {}, 2000);
     if (correct) snd.success(); else snd.fail();
     return () => clearTimeout(t);
   }, [step, wentUp]);
@@ -338,7 +322,6 @@ function BTCOracle({ onChoice, choice }: { onChoice: (c: string) => void; choice
     if (localChoice || step !== "input") return;
     snd.tap();
     setLocalChoice(dir);
-    // don't lock yet — wait for timer to run out
   };
 
   const chartPoints = btcHistory.length > 1
@@ -355,8 +338,6 @@ function BTCOracle({ onChoice, choice }: { onChoice: (c: string) => void; choice
 
   return (
     <div style={{ textAlign: "center", width: "100%", maxWidth: "420px", margin: "0 auto" }}>
-
-      {/* STATE 1: INTRO */}
       {step === "intro" && (
         <div style={{ position: "fixed", inset: 0, background: "#000", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
           <div style={{ fontFamily: "Orbitron, monospace", fontSize: "0.65rem", color: "#555", letterSpacing: "0.4em", marginBottom: "20px" }}>⚠ ROUND 4 OF 5 ⚠</div>
@@ -367,13 +348,11 @@ function BTCOracle({ onChoice, choice }: { onChoice: (c: string) => void; choice
         </div>
       )}
 
-      {/* STATES 2-5: shared chart header */}
       {step !== "intro" && (
         <>
           <div style={{ fontFamily: "Space Mono, monospace", fontSize: "0.65rem", color: "#E8FF00", letterSpacing: "0.3em", marginBottom: "12px" }}>ROUND 4 OF 5</div>
           <div style={{ fontFamily: "Bebas Neue, sans-serif", fontSize: "4rem", color: "white", lineHeight: 0.9, marginBottom: "16px" }}>BTC ORACLE</div>
 
-          {/* Price + countdown row */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "12px" }}>
             <div style={{ textAlign: "left" }}>
               <div style={{ fontFamily: "Space Mono, monospace", fontSize: "0.45rem", color: "#333", letterSpacing: "0.15em", marginBottom: "4px" }}>BTC / USDT</div>
@@ -389,7 +368,6 @@ function BTCOracle({ onChoice, choice }: { onChoice: (c: string) => void; choice
             )}
           </div>
 
-          {/* Chart */}
           <div style={{ height: "80px", border: "1px solid #1a1a2a", background: "#08080d", position: "relative", overflow: "hidden", marginBottom: "16px" }}>
             <svg width="100%" height="100%" viewBox="0 0 300 60" preserveAspectRatio="none">
               <polyline points={chartPoints} fill="none" stroke={step === "result" ? (wentUp ? "#00FF88" : "#FF2B2B") : "#888"} strokeWidth="2" />
@@ -397,7 +375,6 @@ function BTCOracle({ onChoice, choice }: { onChoice: (c: string) => void; choice
             <div style={{ position: "absolute", top: "8px", left: "10px", fontFamily: "Space Mono, monospace", fontSize: "0.45rem", color: "#222", letterSpacing: "0.1em" }}>LIVE PRICE MOVEMENT</div>
           </div>
 
-          {/* STATE 2: INPUT — buttons + countdown */}
           {step === "input" && (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
               {[
@@ -417,7 +394,6 @@ function BTCOracle({ onChoice, choice }: { onChoice: (c: string) => void; choice
             </div>
           )}
 
-          {/* STATE 3: LOCK */}
           {step === "lock" && (
             <div style={{ textAlign: "center", paddingTop: "16px" }}>
               <div style={{ fontFamily: "Space Mono, monospace", fontSize: "0.6rem", color: "#333", letterSpacing: "0.25em", marginBottom: "16px" }}>YOUR PREDICTION</div>
@@ -429,7 +405,6 @@ function BTCOracle({ onChoice, choice }: { onChoice: (c: string) => void; choice
             </div>
           )}
 
-          {/* STATE 4: WAIT */}
           {step === "wait" && (
             <div style={{ textAlign: "center", paddingTop: "16px" }}>
               <div style={{ width: "40px", height: "40px", border: "3px solid #1a1a2a", borderTop: "3px solid #E8FF00", borderRadius: "50%", margin: "0 auto 16px", animation: "spinAnim 1s linear infinite" }} />
@@ -437,7 +412,6 @@ function BTCOracle({ onChoice, choice }: { onChoice: (c: string) => void; choice
             </div>
           )}
 
-          {/* STATE 5: RESULT */}
           {step === "result" && wentUp !== null && (
             <div style={{ textAlign: "center", paddingTop: "8px", animation: "slideUp 0.4s ease" }}>
               <div style={{ fontFamily: "Space Mono, monospace", fontSize: "0.6rem", color: "#333", letterSpacing: "0.25em", marginBottom: "16px" }}>FINAL RESULT</div>
@@ -476,7 +450,6 @@ function ReactionRace({ onChoice, choice }: { onChoice: (c: string) => void; cho
 
   useEffect(() => {
     if (choice) return;
-    // Intro 1.5s
     setTimeout(() => {
       setScreen("countdown");
       let cd = 3;
@@ -509,11 +482,11 @@ function ReactionRace({ onChoice, choice }: { onChoice: (c: string) => void; cho
     const rt = (performance.now() - reactStartRef.current) / 1000;
     setReactionTime(rt);
     setScreen("result");
-    let r = "", rc = "#E8FF00", won = true;
+    let r = "", rc = "#E8FF00";
     if (rt < 0.3) { r = "LIGHTNING — TOP 5"; rc = "#00FF88"; snd.success(); }
     else if (rt < 0.6) { r = "FAST — TOP 5 SURVIVOR"; rc = "#00FF88"; snd.success(); }
     else if (rt < 1.0) { r = "AVERAGE — BORDERLINE"; rc = "#E8FF00"; }
-    else { r = "TOO SLOW — ELIMINATED"; rc = "#FF2B2B"; won = false; snd.fail(); }
+    else { r = "TOO SLOW — ELIMINATED"; rc = "#FF2B2B"; snd.fail(); }
     setRank(r);
     setRankColor(rc);
     onChoice(rt < 1.0 ? `react:${rt.toFixed(3)}` : `slow:${rt.toFixed(3)}`);
@@ -566,7 +539,7 @@ function ReactionRace({ onChoice, choice }: { onChoice: (c: string) => void; cho
 }
 
 // ── Main Game Page ─────────────────────────────────────────
-export default function GamePage() {
+function GamePage() {
   const { address } = useAccount();
   const router = useRouter();
   const socketRef = useRef<Socket | null>(null);
@@ -641,12 +614,12 @@ export default function GamePage() {
       setCurrentRound(round);
       const roundXP: Record<number, number> = { 1: 10, 2: 20, 3: 30, 4: 40, 5: 50 };
       let total = 10;
-const myAddr = addressRef.current?.toLowerCase();
-const iElim = myAddr && elim.map((a: string) => a.toLowerCase()).includes(myAddr);
-const survivedRounds = iElim ? round - 1 : round;
-for (let r = 1; r <= survivedRounds; r++) total += (roundXP[r] || 0);
-if (!iElim && round === 5) total += 100;
-setXpEarned(total);
+      const myAddr = addressRef.current?.toLowerCase();
+      const iElim = myAddr && elim.map((a: string) => a.toLowerCase()).includes(myAddr);
+      const survivedRounds = iElim ? round - 1 : round;
+      for (let r = 1; r <= survivedRounds; r++) total += (roundXP[r] || 0);
+      if (!iElim && round === 5) total += 100;
+      setXpEarned(total);
       const iGotEliminated = myAddr && elim.map((a: string) => a.toLowerCase()).includes(myAddr);
       if (iGotEliminated) {
         isEliminatedRef.current = true;
@@ -717,7 +690,6 @@ setXpEarned(total);
         }
       `}</style>
 
-      {/* TOP NAV */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 20px", height: "54px", borderBottom: "1px solid #1a1a2a", background: "rgba(3,3,5,0.98)", position: "sticky", top: 0, zIndex: 100 }}>
         <div style={{ fontFamily: "Bebas Neue, sans-serif", fontSize: "1.2rem", color: "#E8FF00", letterSpacing: "0.25em" }}>STAKE & SURVIVE</div>
         <div style={{ display: "flex", gap: "20px", alignItems: "center" }}>
@@ -733,7 +705,6 @@ setXpEarned(total);
               </div>
             </>
           )}
-          {/* Circular timer */}
           {phase === "round" && (
             <div style={{ position: "relative", width: "46px", height: "46px" }}>
               <svg width="46" height="46" style={{ transform: "rotate(-90deg)" }}>
@@ -749,7 +720,6 @@ setXpEarned(total);
         </div>
       </div>
 
-      {/* ROUND PROGRESS BAR */}
       {phase === "round" && (
         <div style={{ display: "flex", gap: "6px", padding: "10px 20px", borderBottom: "1px solid #0a0a14", background: "rgba(3,3,5,0.9)" }}>
           {[0,1,2,3,4].map(i => (
@@ -760,10 +730,8 @@ setXpEarned(total);
         </div>
       )}
 
-      {/* MAIN CONTENT */}
       <div className="game-content" style={{ maxWidth: "640px", margin: "0 auto", padding: "40px 24px", animation: phaseIn ? "fadeIn 0.4s ease" : "none" }}>
 
-        {/* CONNECTING */}
         {phase === "connecting" && (
           <div style={{ textAlign: "center", paddingTop: "100px" }}>
             <div style={{ width: "48px", height: "48px", border: "3px solid #1a1a2a", borderTop: "3px solid #E8FF00", borderRadius: "50%", margin: "0 auto 24px", animation: "spinAnim 1s linear infinite" }} />
@@ -771,7 +739,6 @@ setXpEarned(total);
           </div>
         )}
 
-        {/* WAITING */}
         {phase === "waiting" && (
           <div style={{ textAlign: "center", paddingTop: "60px" }}>
             <div style={{ fontFamily: "Space Mono, monospace", fontSize: "0.65rem", color: "#E8FF00", letterSpacing: "0.3em", marginBottom: "16px", animation: "dotBlink 1.5s ease infinite" }}>● LIVE</div>
@@ -799,24 +766,12 @@ setXpEarned(total);
           </div>
         )}
 
-        {/* ROUND UIs */}
-        {phase === "round" && roundType === "safe_path" && (
-          <SplitDecision onChoice={handleChoice} choice={choice} />
-        )}
-        {phase === "round" && roundType === "memory_flash" && (
-          <MemoryTrace onChoice={handleChoice} choice={choice} seed={roundSeed} />
-        )}
-        {phase === "round" && roundType === "minefield" && (
-          <TimingTap onChoice={handleChoice} choice={choice} />
-        )}
-        {phase === "round" && roundType === "btc_oracle" && (
-          <BTCOracle onChoice={handleChoice} choice={choice} />
-        )}
-        {phase === "round" && roundType === "final_round" && (
-          <ReactionRace onChoice={handleChoice} choice={choice} />
-        )}
+        {phase === "round" && roundType === "safe_path" && <SplitDecision onChoice={handleChoice} choice={choice} />}
+        {phase === "round" && roundType === "memory_flash" && <MemoryTrace onChoice={handleChoice} choice={choice} seed={roundSeed} />}
+        {phase === "round" && roundType === "minefield" && <TimingTap onChoice={handleChoice} choice={choice} />}
+        {phase === "round" && roundType === "btc_oracle" && <BTCOracle onChoice={handleChoice} choice={choice} />}
+        {phase === "round" && roundType === "final_round" && <ReactionRace onChoice={handleChoice} choice={choice} />}
 
-        {/* RESULT — SURVIVED */}
         {phase === "result" && (
           <div style={{ textAlign: "center", paddingTop: "40px", animation: "slideUp 0.5s ease" }}>
             <div style={{ fontSize: "4rem", marginBottom: "16px" }}>⚡</div>
@@ -838,7 +793,6 @@ setXpEarned(total);
           </div>
         )}
 
-        {/* ELIMINATED — kept exactly as before with XP display */}
         {phase === "eliminated" && (
           <div style={{ textAlign: "center", paddingTop: "60px", animation: "slideUp 0.5s ease" }}>
             <div style={{ fontFamily: "Bebas Neue, sans-serif", fontSize: "6rem", color: "#FF2B2B", lineHeight: 1, marginBottom: "8px", textShadow: "0 0 60px rgba(255,43,43,0.6)", animation: "scaleIn 0.4s ease" }}>ELIMINATED</div>
@@ -860,7 +814,6 @@ setXpEarned(total);
           </div>
         )}
 
-        {/* WINNER */}
         {phase === "winner" && (
           <div style={{ textAlign: "center", paddingTop: "60px", animation: "slideUp 0.5s ease" }}>
             <div style={{ fontSize: "4rem", marginBottom: "16px" }}>🏆</div>
@@ -884,7 +837,6 @@ setXpEarned(total);
         )}
       </div>
 
-      {/* BOTTOM STATUS BAR */}
       {phase === "round" && roundType !== "final_round" && (
         <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "rgba(3,3,5,0.98)", backdropFilter: "blur(10px)", borderTop: "1px solid #1a1a2a", padding: "10px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 200 }}>
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
@@ -897,5 +849,13 @@ setXpEarned(total);
         </div>
       )}
     </div>
+  );
+}
+
+export default function GamePageWrapper() {
+  return (
+    <Suspense fallback={null}>
+      <GamePage />
+    </Suspense>
   );
 }
