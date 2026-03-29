@@ -50,7 +50,7 @@ export default function SubscribePage() {
   useEffect(() => {
     if (approveSuccess && step === "approving") {
       setStep("subscribing");
-      subscribe({ address: CONTRACT_ADDRESS, abi: CONTRACT_ABI, functionName: "subscribe", chainId: base.id, account: "" as `0x${string}` });
+      subscribe({ address: CONTRACT_ADDRESS, abi: CONTRACT_ABI, functionName: "subscribe", chainId: base.id, chain: base, account: "" as `0x${string}` });
     }
   }, [approveSuccess]);
 
