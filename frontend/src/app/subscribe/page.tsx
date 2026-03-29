@@ -40,8 +40,8 @@ export default function SubscribePage() {
       .catch(() => {});
   }, [address]);
 
-  const { data: usdcBal } = useReadContract({ address: USDC_ADDRESS, abi: USDC_ABI, functionName: "balanceOf", args: address ? [address] : undefined, chainId: base.id, chain: undefined, account: "" as `0x${string}` });
-  const { data: isSubscribed } = useReadContract({ address: CONTRACT_ADDRESS, abi: CONTRACT_ABI, functionName: "isSubscribed", args: address ? [address] : undefined, chainId: base.id, chain: undefined, account: "" as `0x${string}` });
+  const { data: usdcBal } = useReadContract({ address: USDC_ADDRESS, abi: USDC_ABI, functionName: "balanceOf", args: address ? [address] : undefined,chainId: base.id, account: "" as `0x${string}` });
+  const { data: isSubscribed } = useReadContract({ address: CONTRACT_ADDRESS, abi: CONTRACT_ABI, functionName: "isSubscribed", args: address ? [address] : undefined, chainId: base.id, account: "" as `0x${string}` });
   const { writeContract: approve, data: approveTxHash } = useWriteContract();
   const { writeContract: subscribe, data: subscribeTxHash } = useWriteContract();
   const { isSuccess: approveSuccess } = useWaitForTransactionReceipt({ hash: approveTxHash });
@@ -50,7 +50,7 @@ export default function SubscribePage() {
   useEffect(() => {
     if (approveSuccess && step === "approving") {
       setStep("subscribing");
-      subscribe({ address: CONTRACT_ADDRESS, abi: CONTRACT_ABI, functionName: "subscribe", chainId: base.id, chain: undefined, account: "" as `0x${string}` });
+      subscribe({ address: CONTRACT_ADDRESS, abi: CONTRACT_ABI, functionName: "subscribe", chainId: base.id, account: "" as `0x${string}` });
     }
   }, [approveSuccess]);
 
@@ -72,12 +72,12 @@ export default function SubscribePage() {
     if (!address) return;
     setError("");
     const usdcBalance = usdcBal ? Number(usdcBal) / 1e6 : 0;
-    if (usdcBalance < 6.99) {
-      setError(`Insufficient USDC. You have $${usdcBalance.toFixed(2)} but need $6.99.`);
+   if (usdcBalance < 4.99) {
+      setError(`Insufficient USDC. You have $${usdcBalance.toFixed(2)} but need $4.99.`);
       return;
     }
     setStep("approving");
-    approve({ address: USDC_ADDRESS, abi: USDC_ABI, functionName: "approve", args: [CONTRACT_ADDRESS, SUBSCRIPTION_FEE], chainId: base.id, chain: undefined, account: "" as `0x${string}` });
+approve({ address: USDC_ADDRESS, abi: USDC_ABI, functionName: "approve", args: [CONTRACT_ADDRESS, SUBSCRIPTION_FEE], chainId: base.id, account: "" as `0x${string}` });
   };
 
   const usdcDisplay = usdcBal ? (Number(usdcBal) / 1e6).toFixed(2) : "0.00";
@@ -167,8 +167,8 @@ export default function SubscribePage() {
                   {/* Price */}
                   <div style={{ marginBottom: "8px" }}>
                     <div style={{ fontFamily: "Space Mono, monospace", fontSize: "0.55rem", color: "#555", textTransform: "uppercase" as const, marginBottom: "4px" }}>Subscription Fee</div>
-                    <div style={{ fontFamily: "Bebas Neue, sans-serif", fontSize: "4rem", color: "#E8FF00", lineHeight: 1, textShadow: "0 0 30px rgba(232,255,0,0.3)" }}>$6.99</div>
-                    <div style={{ fontFamily: "Space Mono, monospace", fontSize: "0.55rem", color: "#555", marginTop: "4px" }}>One-time · Base Sepolia · USDC</div>
+<div style={{ fontFamily: "Bebas Neue, sans-serif", fontSize: "4rem", color: "#E8FF00", lineHeight: 1, textShadow: "0 0 30px rgba(232,255,0,0.3)" }}>$4.99</div>
+<div style={{ fontFamily: "Space Mono, monospace", fontSize: "0.55rem", color: "#555", marginTop: "4px" }}>One-time · Base Mainnet · USDC</div>
                   </div>
 
                   {/* Limited beta note */}
@@ -228,9 +228,8 @@ export default function SubscribePage() {
                       {step === "done" && "✓ DONE"}
                     </button>
                   )}
-
-                  <div style={{ fontFamily: "Space Mono, monospace", fontSize: "0.55rem", color: "#333", textAlign: "center", marginTop: "12px" }}>
-                    Requires USDC on Base Sepolia testnet
+<div style={{ fontFamily: "Space Mono, monospace", fontSize: "0.55rem", color: "#333", textAlign: "center", marginTop: "12px" }}>
+                    Requires USDC on Base Mainnet
                   </div>
                 </div>
               </div>
