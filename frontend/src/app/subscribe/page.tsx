@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { parseUnits } from "viem";
-import { baseSepolia } from "wagmi/chains";
+import { base } from "wagmi/chains";
 import { useWriteContract, useWaitForTransactionReceipt, useReadContract } from "wagmi";
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`;
@@ -40,8 +40,8 @@ export default function SubscribePage() {
       .catch(() => {});
   }, [address]);
 
-  const { data: usdcBal } = useReadContract({ address: USDC_ADDRESS, abi: USDC_ABI, functionName: "balanceOf", args: address ? [address] : undefined, chainId: baseSepolia.id });
-  const { data: isSubscribed } = useReadContract({ address: CONTRACT_ADDRESS, abi: CONTRACT_ABI, functionName: "isSubscribed", args: address ? [address] : undefined, chainId: baseSepolia.id });
+  const { data: usdcBal } = useReadContract({ address: USDC_ADDRESS, abi: USDC_ABI, functionName: "balanceOf", args: address ? [address] : undefined, chainId: base.id, chain: undefined, account: "" as `0x${string}` });
+  const { data: isSubscribed } = useReadContract({ address: CONTRACT_ADDRESS, abi: CONTRACT_ABI, functionName: "isSubscribed", args: address ? [address] : undefined, chainId: base.id, chain: undefined, account: "" as `0x${string}` });
   const { writeContract: approve, data: approveTxHash } = useWriteContract();
   const { writeContract: subscribe, data: subscribeTxHash } = useWriteContract();
   const { isSuccess: approveSuccess } = useWaitForTransactionReceipt({ hash: approveTxHash });
@@ -50,7 +50,7 @@ export default function SubscribePage() {
   useEffect(() => {
     if (approveSuccess && step === "approving") {
       setStep("subscribing");
-      subscribe({ address: CONTRACT_ADDRESS, abi: CONTRACT_ABI, functionName: "subscribe", chainId: baseSepolia.id });
+      subscribe({ address: CONTRACT_ADDRESS, abi: CONTRACT_ABI, functionName: "subscribe", chainId: base.id, chain: undefined, account: "" as `0x${string}` });
     }
   }, [approveSuccess]);
 
@@ -77,7 +77,7 @@ export default function SubscribePage() {
       return;
     }
     setStep("approving");
-    approve({ address: USDC_ADDRESS, abi: USDC_ABI, functionName: "approve", args: [CONTRACT_ADDRESS, SUBSCRIPTION_FEE], chainId: baseSepolia.id });
+    approve({ address: USDC_ADDRESS, abi: USDC_ABI, functionName: "approve", args: [CONTRACT_ADDRESS, SUBSCRIPTION_FEE], chainId: base.id, chain: undefined, account: "" as `0x${string}` });
   };
 
   const usdcDisplay = usdcBal ? (Number(usdcBal) / 1e6).toFixed(2) : "0.00";
