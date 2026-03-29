@@ -1,8 +1,9 @@
 "use client";
+export const dynamic = "force-dynamic";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
-import { baseSepolia } from "wagmi/chains";
+import { base } from "wagmi/chains";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`;
@@ -165,7 +166,7 @@ useEffect(() => {
         abi: CONTRACT_ABI,
         functionName: "claimDailyXP",
         args: [BigInt(data.xpAmount), data.signature as `0x${string}`],
-        chainId: baseSepolia.id,
+        chainId: base.id,
         chain: undefined,
         account: "" as `0x${string}`,
       });
