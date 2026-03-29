@@ -2,7 +2,7 @@
 export const dynamic = "force-dynamic";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { base } from "wagmi/chains";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
@@ -32,12 +32,12 @@ function getXPFromScore(score: number, prevBest: number, noHits: boolean, surviv
   if (score > prevBest && prevBest > 0) xp += 5;
   if (noHits) xp += 10;
   if (survived) xp += 5;
-  xp = Math.min(xp, 50); // daily cap
+  xp = Math.min(xp, 50);
   const tier = score >= 500 ? "PRO" : score >= 301 ? "STRONG" : score >= 101 ? "GOOD" : "BEGINNER";
   return { xp, tier };
 }
 
-export default function DodgeNodesPage() {
+function DodgeNodesPage() {
   const { address } = useAccount();
   const router = useRouter();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -79,7 +79,6 @@ useEffect(() => {
   const hitRef = useRef(false);
   const survivedRef = useRef(false);
 
-  // Claim flow state
   const [claimStep, setClaimStep] = useState<"idle" | "signing" | "confirming" | "done" | "error">("idle");
   const [nextAttempt, setNextAttempt] = useState("");
 
@@ -106,7 +105,6 @@ useEffect(() => {
   const { writeContract, data: txHash, error: writeError } = useWriteContract();
   const { isSuccess: txSuccess, isLoading: txLoading } = useWaitForTransactionReceipt({ hash: txHash });
 
-  // Step 3: after tx confirmed — tell backend to award XP in DB
   useEffect(() => {
     if (!txSuccess || !txHash || claimStep !== "confirming") return;
     const confirm = async () => {
@@ -132,7 +130,6 @@ useEffect(() => {
     confirm();
   }, [txSuccess, txHash]);
 
-  // Handle write errors
   useEffect(() => {
     if (writeError) {
       setClaimError(writeError.message.slice(0, 80));
@@ -146,7 +143,6 @@ useEffect(() => {
     setClaimError("");
 
     try {
-      // Step 1: get signature from backend
       const res = await fetch(`${API_URL}/api/sign-xp-claim`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -159,7 +155,6 @@ useEffect(() => {
         return;
       }
 
-      // Step 2: send tx to contract
       setClaimStep("confirming");
      writeContract({
         address: CONTRACT_ADDRESS,
@@ -167,7 +162,7 @@ useEffect(() => {
         functionName: "claimDailyXP",
         args: [BigInt(data.xpAmount), data.signature as `0x${string}`],
         chainId: base.id,
-        chain: undefined,
+        chain: base,
         account: "" as `0x${string}`,
       });
 
@@ -219,7 +214,6 @@ useEffect(() => {
     window.addEventListener("keydown", onKD);
     window.addEventListener("keyup", onKU);
     canvas.addEventListener("touchmove", onTM, { passive: false });
-// Audio
     let audioCtx: AudioContext | null = null;
     const getAC = () => { if (!audioCtx) audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)(); return audioCtx; };
     const playTone = (freq: number, type: OscillatorType, dur: number, vol = 0.3) => {
@@ -313,9 +307,7 @@ useEffect(() => {
       setFinalXP(xp);
       setFinalTier(tier);
       setGameState("done");
-      // Save score to localStorage for claim restore
       localStorage.setItem("nodedodge_last_score", JSON.stringify({ score: gs.score, xp, tier }));
-      // Record play on backend
       if (address) {
         fetch(`${API_URL}/api/daily-game/record`, {
           method: "POST",
@@ -323,7 +315,6 @@ useEffect(() => {
           body: JSON.stringify({ walletAddress: address }),
         }).catch(() => {});
       }
-    
     };
 
     const loop = () => {
@@ -448,7 +439,6 @@ useEffect(() => {
         @keyframes ndFade { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
       `}</style>
 
-      {/* TOP BAR */}
       <div style={{ height: "54px", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 20px", borderBottom: "1px solid rgba(0,255,180,0.15)", background: "rgba(2,4,8,0.98)", position: "relative", zIndex: 10 }}>
         <button onClick={() => router.push("/lobby")} style={{ background: "transparent", border: "1px solid rgba(0,255,180,0.2)", color: "rgba(0,255,180,0.6)", padding: "6px 14px", fontFamily: "Space Mono, monospace", fontSize: "0.6rem", letterSpacing: "2px", cursor: "pointer" }}>← LOBBY</button>
         <div style={{ fontFamily: "Orbitron, monospace", fontSize: "0.9rem", fontWeight: 900, color: "#00ffb3", letterSpacing: "4px" }}>NODE DODGE</div>
@@ -474,7 +464,6 @@ useEffect(() => {
         ) : <div style={{ width: "80px" }} />}
       </div>
 
-      {/* IDLE */}
       {gameState === "idle" && (
         <div style={{ position: "fixed", inset: 0, top: "54px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#020408", zIndex: 5, animation: "ndFade 0.4s ease" }}>
           <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(0,255,180,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,180,0.025) 1px,transparent 1px)", backgroundSize: "50px 50px", pointerEvents: "none" }} />
@@ -496,10 +485,8 @@ useEffect(() => {
         </div>
       )}
 
-      {/* GAME CANVAS */}
       <canvas ref={canvasRef} style={{ display: gameState === "playing" ? "block" : "none", width: "100%", height: "calc(100vh - 54px)", cursor: "none" }} />
 
-      {/* RESULT */}
       {gameState === "done" && (
         <div style={{ position: "fixed", inset: 0, top: "54px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "rgba(2,4,8,0.97)", zIndex: 5, animation: "ndFade 0.4s ease" }}>
           <div style={{ position: "relative", textAlign: "center", animation: "ndPop 0.4s cubic-bezier(0.34,1.56,0.64,1)" }}>
@@ -552,13 +539,21 @@ useEffect(() => {
             )}
             {claimStep === "confirming" && txHash && (
               <div style={{ fontFamily: "Space Mono, monospace", fontSize: "0.55rem", color: "rgba(0,255,180,0.4)", marginTop: "8px" }}>
-                TX: <a href={`https://sepolia.basescan.org/tx/${txHash}`} target="_blank" rel="noreferrer" style={{ color: "#00ffb3" }}>{txHash.slice(0, 20)}...</a>
+                TX: <a href={`https://basescan.org/tx/${txHash}`} target="_blank" rel="noreferrer" style={{ color: "#00ffb3" }}>{txHash.slice(0, 20)}...</a>
               </div>
             )}
-            <div style={{ fontFamily: "Space Mono, monospace", fontSize: "0.5rem", color: "rgba(0,255,180,0.2)", marginTop: "8px" }}>XP recorded on Base Sepolia blockchain</div>
+            <div style={{ fontFamily: "Space Mono, monospace", fontSize: "0.5rem", color: "rgba(0,255,180,0.2)", marginTop: "8px" }}>XP recorded on Base blockchain</div>
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+export default function DodgeNodesPageWrapper() {
+  return (
+    <Suspense fallback={null}>
+      <DodgeNodesPage />
+    </Suspense>
   );
 }
